@@ -11,77 +11,57 @@ s.reboot
 // - distance to flock (0,1): release of grain (0,1)
 
 //multichannel help file
-//group help file
-//Array a einer Gruppe aus EventStreamPlayern je boid eine Gruppe mit jeweiligen paramtern
 //a[index].player = Pbind
+s.meter
 
-//create group:
-/*g = Group()
 
 (
-(
-group: g,
-dur: 1000,
-).play
-)
+//define group array
+x = Array.fill(10, {Group.new});
 
-g.set(\freq, 100)
-g.free*/
-
-//define Array for synth groups
-~allSynthGroups = Array.fill(50, {(x:0, y:0, z:0, s:0)})
-
-~allSynthGroups[0].z = 10;
-
-//define group
-g = Group();
+//define control bus
+b = Bus.control(s, 1);
 
 
 //define sine synth
-(
-SynthDef(\sine, {arg amp=1,cutOff=20000;
-	var sig, env;
-	env = EnvGen.kr(Env.new([0, 1, 0],[0.01,0.1,0.005], [1, -1]), doneAction:2);
+b.set(20000);
+SynthDef(\sine, {
+	var sig, env, amp=0.1, cutOff=b.kr(20);
+	env = EnvGen.kr(Env.new([0, 1, 0],[0.03,0.3], [1, -1]), doneAction:2);
 	sig = WhiteNoise.ar()*env*amp;
 	Out.ar(0,RLPF.ar(sig.dup,cutOff,0.1));
-}).add;
+}).play;
 )
 
 (
 p = Pbind(
 	\instrument, \sine,
-	\amp,Pfunc {~control},
-	\dur, 0.25;
-).play.trace;
+	\amp,0.1,
+	\dur, 1,
+	\group, x[1],
+	\bus, 2,
+).play;
 )
-~control =0.6;
+
+b.setAt(0,100);
+
+
 
 (
 //OSC messages
-
 OSCdef.new(\numBoids,
 {
 	arg msg;
+	var numBoids = msg[1];
 	//post received message
 	msg[0].postln;
 	msg[1].postln;
+	//define Array
+	~allSynthGroups = Array.fill(msg[1], {Group.new})
 },
 '/numBoids',
 nil, 57120
 );
-
-
-/*OSCdef.new(\yCoord,
-{
-	arg msg, msgMap;
-	//post received message
-	msgMap = LinLin.ar(msg[1], -20,20, 50, 20000);
-	//msgMap.postln;
-	//~ampControl = 0.1;
-},
-'/yCoord',
-nil, 57120
-);*/
 
 ~ampControl = 0.1;
 //OSC action for "instantiate"
@@ -91,18 +71,33 @@ OSCdef.new(\instantiate,
 	var index = msg[1];
 	//post received message
 	msg[0].postln;
+	index.postln;
 	//start sequence
 	p = Pbind(
-	\instrument, \sine,
-	\dur, 0.5,
-	\amp,Pfunc {~ampControl},
-	).play.trace;
+		\instrument, \sine,
+		\dur, 1,
+		\amp,Pfunc {~ampControl},
+		\group,~allSynthGroups[index],
+	).play;
 },
 '/instantiate',
 nil, 57120
 );
 
-//OSC action for "destroy"
+/*OSCdef.new(\xCoord,
+{
+	arg msg, msgMap;
+	//post received message
+	msgMap = LinLin.ar(msg[1], -20,20, 50, 20000);
+	msg[0].postln;
+	msgMap.postln;
+	b.set(msgMap);
+},
+'/xCoord',
+nil, 57120
+);*/
+
+/*//OSC action for "destroy"
 OSCdef.new(\destroy,
 {
 	arg msg;
@@ -113,14 +108,14 @@ OSCdef.new(\destroy,
 },
 '/destroy',
 nil, 57120
-);
+);*/
 
 )
 
 
 
 
-//define synth array
+/*//define synth array
 (
 var synth_array = Array.new(50);
 synth_array.insert(Synth(\sine,[\amp,rrand(0.2,1.0), \freq,rrand(100,600)]));
@@ -182,4 +177,4 @@ SynthDef(\sfgrain, {arg bufnum=0, pan=0.0, startPos=0.0, amp=0.1, dur=0.0001, lo
 )
 
 //play individual grain
-Synth(\sfgrain,[\bufnum, b.bufnum, \startPos,rrand(0.0,1.0),\amp, exprand(0.005,0.1), \pan, 1.0.rand2]);
+Synth(\sfgrain,[\bufnum, b.bufnum, \startPos,rrand(0.0,1.0),\amp, exprand(0.005,0.1), \pan, 1.0.rand2]);*/
